@@ -5,23 +5,24 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.util.IncorrectOperationException;
 import dev.marko.yamlbuddy.util.YamlPsiUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * PsiReference that uses dot-path (npr. server.port.number) and tries resolve
- * in YAMLKeyValue in project.
- */
-public class YamlPropertyReference extends PsiReferenceBase<PsiElement> implements PsiPolyVariantReference, EmptyResolveMessageProvider {
+public class YamlPropertyReference
+        extends PsiReferenceBase<PsiElement>
+        implements PsiPolyVariantReference, EmptyResolveMessageProvider {
 
     private final String keyPath;
 
     private static final Pattern EL_PATTERN = Pattern.compile("\\$\\{\\s*([^}]+)\\s*}");
 
-    public YamlPropertyReference(PsiElement element, TextRange range, String keyPath) {
+    public YamlPropertyReference(@NotNull PsiElement element,
+                                 @NotNull TextRange range,
+                                 @NotNull String keyPath) {
         super(element, range);
         this.keyPath = keyPath;
     }
@@ -32,16 +33,17 @@ public class YamlPropertyReference extends PsiReferenceBase<PsiElement> implemen
     }
 
     @Override
-    public ResolveResult[] multiResolve(boolean incompleteCode) {
-        PsiElement target = resolve();
-        if (target == null) return ResolveResult.EMPTY_ARRAY;
-        return new ResolveResult[]{new PsiElementResolveResult(target)};
+    public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
+        PsiElement resolved = resolve();
+        if (resolved == null) {
+            return ResolveResult.EMPTY_ARRAY;
+        }
+        return new ResolveResult[]{new PsiElementResolveResult(resolved)};
     }
 
     @Override
-    public Object[] getVariants() {
-        // Autocomplete variants can be added later.
-        return new Object[0];
+    public Object @NotNull [] getVariants() {
+        return new Object[0]; // Later: YAML autocomplete
     }
 
     @Override
@@ -50,26 +52,37 @@ public class YamlPropertyReference extends PsiReferenceBase<PsiElement> implemen
     }
 
     @Override
-    public PsiElement handleElementRename(String newElementName) throws IncorrectOperationException {
-        throw new IncorrectOperationException("Rename not supported for literal references");
+    public PsiElement handleElementRename(@NotNull String newElementName)
+            throws IncorrectOperationException {
+        throw new IncorrectOperationException("Rename not supported for YAML EL references");
     }
 
     /**
-     * Parse literals and create appropriate PsiReferences
+     * Factory method: extracts all ${...} references from a PsiLiteral.
      */
-    public static PsiReference[] createReferencesForLiteral(PsiLiteralExpression literal, String literalText) {
+    public static PsiReference @NotNull [] createReferences(@NotNull PsiLiteral literal) {
+
+        Object rawValue = literal.getValue();
+        if (!(rawValue instanceof String literalText)) {
+            return PsiReference.EMPTY_ARRAY;
+        }
+
         List<PsiReference> refs = new ArrayList<>();
         Matcher matcher = EL_PATTERN.matcher(literalText);
 
         while (matcher.find()) {
             String key = matcher.group(1);
-            if (key == null || key.trim().isEmpty()) continue;
+            if (key == null || key.isBlank()) continue;
+
             int start = matcher.start();
             int end = matcher.end();
-            // Move in literal.text
+
+            // offset by 1 to skip opening quote
             TextRange range = new TextRange(1 + start, 1 + end);
+
             refs.add(new YamlPropertyReference(literal, range, key));
         }
-        return refs.toArray(new PsiReference[0]);
+
+        return refs.toArray(PsiReference[]::new);
     }
 }

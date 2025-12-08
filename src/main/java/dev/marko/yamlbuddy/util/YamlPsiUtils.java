@@ -22,14 +22,14 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Helper klasa: pronalaženje application.yml(a), pretraga dot-path-a i kreiranje hijerarhije.
+ * Helper class: locating application.yml, searching dot-paths and creating hierarchy.
  */
 public class YamlPsiUtils {
 
     private static final List<String> CANDIDATES = Arrays.asList("application.yml", "application.yaml");
 
     /**
-     * Počinje pretragu po svim candidate fajlovima; vraća prvi YAMLKeyValue koji odgovara dotPath.
+     * Starts searching through all candidate files; returns the first YAMLKeyValue that matches the dotPath.
      */
     public static YAMLKeyValue findYamlKey(Project project, String dotPath) {
         List<YAMLFile> files = findApplicationYamlFiles(project);
@@ -41,7 +41,7 @@ public class YamlPsiUtils {
     }
 
     /**
-     * Pronađi application.yml/yaml fajlove u projektu, preferiraj src/main/resources
+     * Finds application.yml/yaml files in the project, prioritizing src/main/resources.
      */
     public static List<YAMLFile> findApplicationYamlFiles(Project project) {
         GlobalSearchScope scope = GlobalSearchScope.projectScope(project);
@@ -63,7 +63,7 @@ public class YamlPsiUtils {
     }
 
     /**
-     * Traži dotPath unutar YAML PSI. Vraca YAMLKeyValue ako postoji.
+     * Searches dotPath inside YAML PSI. Returns YAMLKeyValue if it exists.
      */
     private static YAMLKeyValue findKeyInYamlPsi(YAMLFile yamlFile, String dotPath) {
         List<String> parts = Arrays.asList(dotPath.split("\\."));
@@ -78,7 +78,7 @@ public class YamlPsiUtils {
                 return null;
             }
             if (i == parts.size() - 1) return kv;
-            // idi dublje
+            // go deeper
             YAMLValue value = kv.getValue();
             if (value instanceof YAMLMapping) {
                 currentMapping = (YAMLMapping) value;
@@ -90,7 +90,7 @@ public class YamlPsiUtils {
     }
 
     /**
-     * Kreira (ili nadograđuje) application.yaml fajl tako da sadrži dotPath hijerarhiju.
+     * Creates (or updates) the application.yaml file so that it contains the dotPath hierarchy.
      */
     public static void createMissingPathInYaml(Project project, String dotPath) {
         YAMLFile yamlFile = chooseOrCreateApplicationYaml(project);
@@ -101,14 +101,14 @@ public class YamlPsiUtils {
             YAMLMapping root = PsiTreeUtil.findChildOfType(yamlFile, YAMLMapping.class);
 
             if (root == null) {
-                // Prazan fajl -> ubaci kompletan blok
+                // Empty file -> insert full block
                 String text = buildYamlText(Arrays.asList(dotPath.split("\\.")));
                 YAMLFile dummy = generator.createDummyYamlWithText(text);
                 YAMLMapping newMap = PsiTreeUtil.findChildOfType(dummy, YAMLMapping.class);
                 if (newMap != null) {
                     yamlFile.add(newMap);
                 } else {
-                    // fallback: napiši direktno text u dokument
+                    // fallback: write text directly to document
                     PsiDocumentManager documentManager = PsiDocumentManager.getInstance(project);
                     documentManager.getDocument(yamlFile).setText(text);
                     documentManager.commitAllDocuments();
@@ -116,7 +116,7 @@ public class YamlPsiUtils {
                 return;
             }
 
-            // Postoji root mapping - iterativno ubacuj nedostajuće nivoe
+            // Root mapping exists – iteratively insert missing levels
             YAMLMapping current = root;
             String[] parts = dotPath.split("\\.");
             for (int i = 0; i < parts.length; i++) {
@@ -124,11 +124,11 @@ public class YamlPsiUtils {
                 YAMLKeyValue existing = current.getKeyValueByKey(key);
                 if (existing == null) {
                     if (i == parts.length - 1) {
-                        // poslednji nivo: dodaj ključ bez vrednosti
+                        // last level: add a key without value
                         YAMLKeyValue newKv = generator.createYamlKeyValue(key, "");
                         current.addBefore(newKv, current.getLastChild());
                     } else {
-                        // kreiraj podmapu za ostatak
+                        // create submap for the remainder
                         List<String> remaining = new ArrayList<>();
                         for (int j = i; j < parts.length; j++) remaining.add(parts[j]);
                         String text = buildYamlText(remaining);
@@ -136,26 +136,26 @@ public class YamlPsiUtils {
                         YAMLKeyValue firstKv = PsiTreeUtil.findChildOfType(dummy, YAMLKeyValue.class);
                         if (firstKv != null) {
                             current.addBefore(firstKv, current.getLastChild());
-                            // postavi current ka novoj mapi
+                            // move current to new mapping
                             YAMLKeyValue justAdded = current.getKeyValueByKey(key);
                             if (justAdded != null && justAdded.getValue() instanceof YAMLMapping) {
                                 current = (YAMLMapping) justAdded.getValue();
-                                // nastavi petlju iz sledećeg indeksa
+                                // continue loop from next index
                                 continue;
                             }
                         } else {
-                            // fallback: dodaj prazni ključ
+                            // fallback: add empty key
                             YAMLKeyValue newKv = generator.createYamlKeyValue(key, "");
                             current.addBefore(newKv, current.getLastChild());
                         }
                     }
                 } else {
-                    // postojeći ključ - idi dublje ako je mapping
+                    // existing key – go deeper if mapping
                     YAMLValue val = existing.getValue();
                     if (val instanceof YAMLMapping) {
                         current = (YAMLMapping) val;
                     } else {
-                        // zameni vrednost mapom (oprezno) - koristimo dummy
+                        // replace value with a map (carefully) – using dummy
                         String text = buildYamlText(Arrays.asList(parts).subList(i, parts.length));
                         YAMLFile dummy = generator.createDummyYamlWithText(text);
                         YAMLKeyValue newKv = PsiTreeUtil.findChildOfType(dummy, YAMLKeyValue.class);
@@ -164,7 +164,7 @@ public class YamlPsiUtils {
                             YAMLValue newVal = existing.getValue();
                             if (newVal instanceof YAMLMapping) current = (YAMLMapping) newVal;
                         } else {
-                            // ništa
+                            // nothing
                             return;
                         }
                     }
