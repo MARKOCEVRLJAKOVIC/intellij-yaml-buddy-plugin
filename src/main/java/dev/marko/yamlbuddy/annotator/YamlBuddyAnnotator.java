@@ -1,12 +1,17 @@
 package dev.marko.yamlbuddy.annotator;
 
+import com.intellij.codeInsight.intention.IntentionAction;
 import com.intellij.lang.annotation.AnnotationHolder;
 import com.intellij.lang.annotation.Annotator;
 import com.intellij.lang.annotation.HighlightSeverity;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
+import dev.marko.yamlbuddy.inspection.CreateYamlKeyQuickFix;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.yaml.psi.YAMLFile;
+import org.jetbrains.yaml.psi.YAMLKeyValue;
+import org.jetbrains.yaml.psi.YAMLMapping;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,20 +49,19 @@ public class YamlBuddyAnnotator implements Annotator {
 
             int startOffsetInLiteral = matcher.start();
             int endOffsetInLiteral = matcher.end();
-
-            // literal.getText() includes quotes → offset by +1
             int literalStart = literal.getTextRange().getStartOffset();
+
             TextRange highlightRange = new TextRange(
                     literalStart + 1 + startOffsetInLiteral,
                     literalStart + 1 + endOffsetInLiteral
             );
 
-            holder.newAnnotation(
-                            HighlightSeverity.WARNING,
-                            "YAML key '" + key + "' might be missing"
-                    )
+
+            // "withFix" FOR SHARED LOGIC
+            holder.newAnnotation(HighlightSeverity.WARNING, "YAML key '" + key + "' might be missing")
                     .range(highlightRange)
-                    .tooltip("Key '" + key + "' not found in application.yaml.\nClick to create it.")
+                    .tooltip("Key '" + key + "' not found in application.yaml.")
+                    .withFix((IntentionAction) new CreateYamlKeyQuickFix(key))
                     .create();
         }
     }

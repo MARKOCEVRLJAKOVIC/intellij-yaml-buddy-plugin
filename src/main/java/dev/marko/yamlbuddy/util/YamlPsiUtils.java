@@ -93,6 +93,7 @@ public class YamlPsiUtils {
      * Creates (or updates) the application.yaml file so that it contains the dotPath hierarchy.
      */
     public static void createMissingPathInYaml(Project project, String dotPath) {
+
         YAMLFile yamlFile = chooseOrCreateApplicationYaml(project);
         if (yamlFile == null) return;
         YAMLElementGenerator generator = YAMLElementGenerator.getInstance(project);
@@ -207,5 +208,28 @@ public class YamlPsiUtils {
         } catch (Exception e) {
             return null;
         }
+    }
+    static boolean yamlKeyExists(YAMLFile file, String dottedKey) {
+        YAMLMapping root = PsiTreeUtil.findChildOfType(file, YAMLMapping.class);
+        if (root == null) return false;
+
+        String[] parts = dottedKey.split("\\.");
+        YAMLMapping current = root;
+
+        for (int i = 0; i < parts.length; i++) {
+            YAMLKeyValue kv = current.getKeyValueByKey(parts[i]);
+            if (kv == null) return false;
+
+            if (i == parts.length - 1) {
+                return true;
+            }
+
+            if (!(kv.getValue() instanceof YAMLMapping next)) {
+                return false;
+            }
+
+            current = next;
+        }
+        return false;
     }
 }

@@ -47,7 +47,7 @@ public class YamlPropertyReference
     }
 
     @Override
-    public String getUnresolvedMessagePattern() {
+    public @NotNull String getUnresolvedMessagePattern() {
         return "YAML key '" + keyPath + "' not found";
     }
 

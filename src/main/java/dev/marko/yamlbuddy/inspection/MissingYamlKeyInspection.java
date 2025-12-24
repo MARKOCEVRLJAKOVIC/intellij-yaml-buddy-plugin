@@ -5,6 +5,7 @@ import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import com.intellij.psi.util.PsiTreeUtil;
 import dev.marko.yamlbuddy.reference.YamlPropertyReference;
+import dev.marko.yamlbuddy.util.YamlPsiUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.regex.Matcher;
@@ -67,6 +68,7 @@ public class MissingYamlKeyInspection extends LocalInspectionTool {
                                 isOnTheFly,
                                 new CreateYamlKeyQuickFix(key)
                         );
+
 
                         holder.registerProblem(descriptor);
                     }
