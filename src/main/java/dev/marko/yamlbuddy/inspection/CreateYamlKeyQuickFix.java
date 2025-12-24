@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project;
 import dev.marko.yamlbuddy.util.YamlPsiUtils;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.yaml.psi.YAMLKeyValue;
 
 /**
  * LocalQuickFix which deliberate creation of YAML hierarchy in util.
@@ -30,6 +31,11 @@ public class CreateYamlKeyQuickFix implements LocalQuickFix {
 
     @Override
     public void applyFix(@NotNull Project project, @NotNull ProblemDescriptor descriptor) {
-        YamlPsiUtils.createMissingPathInYaml(project, keyPath);
+        YAMLKeyValue kv = YamlPsiUtils.findYamlKey(project, keyPath);
+
+
+        if (kv != null) {
+            kv.navigate(true);
+        }
     }
 }

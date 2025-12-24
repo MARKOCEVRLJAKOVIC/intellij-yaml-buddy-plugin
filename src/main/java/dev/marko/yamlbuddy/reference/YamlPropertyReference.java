@@ -74,8 +74,8 @@ public class YamlPropertyReference
             String key = matcher.group(1);
             if (key == null || key.isBlank()) continue;
 
-            int start = matcher.start();
-            int end = matcher.end();
+            int start = matcher.start(1);
+            int end = matcher.end(1);
 
             // offset by 1 to skip opening quote
             TextRange range = new TextRange(1 + start, 1 + end);

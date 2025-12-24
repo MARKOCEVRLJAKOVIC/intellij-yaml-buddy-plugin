@@ -45,8 +45,8 @@ public class MissingYamlKeyInspection extends LocalInspectionTool {
 
                     boolean resolved = false;
 
-                    for (PsiReference ref : YamlPropertyReference.createReferences(expression)) {
-                        if (ref.resolve() != null) {
+                    for (PsiReference ref : expression.getReferences()) {
+                        if (ref instanceof YamlPropertyReference && ref.resolve() != null) {
                             resolved = true;
                             break;
                         }
